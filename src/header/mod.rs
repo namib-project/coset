@@ -376,7 +376,15 @@ impl ProtectedHeader {
     pub fn cbor_bstr(self) -> Result<Value> {
         Ok(Value::Bytes(
             if let Some(original_data) = self.original_data {
-                original_data
+                // protected header might have been encoded as a zero length map, only containing
+                // the byte 0xA0 (see RFC8152, Section 3).
+                // However, this byte is not used when computing the signature, so we need to return
+                // an empty Vec here instead.
+                if original_data.eq(&[0xA0]) {
+                    vec![]
+                } else {
+                    original_data
+                }
             } else if self.is_empty() {
                 vec![]
             } else {
